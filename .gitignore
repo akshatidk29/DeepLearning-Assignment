@@ -1,6 +1,9 @@
 venv/
-datasets/
+
+#common ignores
 __pycache__/
 *.ipynb_checkpoints/
 .DS_Store
-plots/
+
+#added
+datasets/
