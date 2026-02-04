@@ -1,0 +1,9 @@
+venv/
+
+#common ignores
+__pycache__/
+*.ipynb_checkpoints/
+.DS_Store
+
+#added
+datasets/
