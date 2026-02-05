@@ -5,7 +5,7 @@ Vandna
 
 ## Project Overview
 
-This project implements a **3-layer Fully Connected Neural Network (FCNN)** ** using NumPy only**.  
+This project implements a **3-layer Fully Connected Neural Network (FCNN)**  **using NumPy only**.  
 No deep learning frameworks such as PyTorch or TensorFlow were used.
 
 The model is trained on the **Adult Census Income Dataset** to predict whether a person's income is greater than **$50K per year**.
