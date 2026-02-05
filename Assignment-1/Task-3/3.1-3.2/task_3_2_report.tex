@@ -1,0 +1,152 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+
+\title{Task 3.2: Switch-Off Test Analysis\\Deep FCNN on Tiny ImageNet} 
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This report explores the findings from the Switch-Off tests we performed on a Deep Fully Connected Neural Network (FCNN) trained with the Tiny ImageNet dataset. In the first phase, Task 3.1, we found that using Leaky ReLU with Batch Normalization effectively addresses the vanishing gradients problem. In Task 3.2, we focused on examining how factors like dropout, learning rate, and optimizer affect the model's performance.
+ 
+
+\section{Baseline Configuration}
+The following setup was used as the reference model:
+
+\begin{itemize}
+    \item Activation: Leaky ReLU ($\alpha = 0.01$)
+    \item Batch Normalization: Enabled
+    \item Dropout: 0.3 after each hidden layer
+    \item Learning Rate: 0.001
+    \item Optimizer: AdamW  
+    \item Epochs: 20
+    \item Batch Size: 64
+\end{itemize}
+
+All Switch-Off tests modify only one component at a time while keeping the rest unchanged.
+
+\section{Switch-Off Experiments}
+
+\subsection{Test 1: Removing Dropout} 
+
+\textbf{Expectation:} Without dropout, the model should overfit due to lack of regularization.
+ 
+\begin{itemize}
+    \item Training accuracy increased, but validation accuracy decreased.
+    \item Training–validation gap widened over epochs.
+    \item Clear signs of overfitting in later stages.
+\end{itemize}
+
+\subsection{Test 2a: Learning Rate $\times 10$ Higher (0.01)}
+\textbf{Expectation:} Faster learning but possible instability.
+ 
+\begin{itemize}
+    \item Rapid initial improvement.
+    \item Loss became unstable with large fluctuations.
+    \item Model struggled to converge to a good final solution.
+\end{itemize}
+
+\subsection{Test 2b: Learning Rate $\times 10$ Lower (0.0001)}
+\textbf{Expectation:} Stable but very slow training.
+ 
+\begin{itemize}
+    \item Smooth loss curves with little progress.
+    \item Model underperformed within 20 epochs.
+    \item Would require many more epochs to match baseline.
+\end{itemize}
+
+\subsection{Test 3: AdamW $\rightarrow$ Vanilla SGD}
+\textbf{Change:} Optimizer replaced with SGD (no momentum).
+
+\textbf{Results:}
+\begin{itemize}
+    \item Convergence was significantly slower.
+    \item Higher variance in training loss.
+    \item Final accuracy much lower than AdamW baseline.
+\end{itemize}
+ 
+
+\begin{table}[h]
+\centering
+\caption{Final Validation Accuracy}
+\begin{tabular}{lc}
+\toprule
+Configuration & Val Acc (\%) \\
+\midrule
+Baseline (AdamW + Dropout 0.3 + LR 0.001) & 42.00 \\
+No Dropout & 41.20 \\
+LR = 0.01 & 38.20 \\
+LR = 0.0001 & 33.60 \\
+Vanilla SGD & 23.80 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{switch_off_comparison.png}
+    \caption{Training and validation accuracy comparison for different Switch-Off tests. The baseline (AdamW, LR=0.001, Dropout=0.3) shows the most stable and highest performance, while Vanilla SGD and low learning rate configurations perform significantly worse.}
+    \label{fig:switch}
+\end{figure}
+
+\section{Impact Analysis}
+
+\textbf{Relative importance of factors:}
+
+\begin{enumerate}
+    \item \textbf{Optimizer:}  
+    AdamW clearly outperformed SGD due to adaptive learning rates and momentum.
+
+    \item \textbf{Learning Rate:}  
+    Even a 10$\times$ change drastically affected training:
+    \begin{itemize}
+        \item Too high → instability  
+        \item Too low → extremely slow learning
+    \end{itemize}
+
+    \item \textbf{Dropout:}  
+    Crucial for generalization, especially for longer training.
+\end{enumerate}
+
+\section{Observations}
+
+\subsection{Adam Works Better}
+\begin{itemize}
+    \item Adapts learning rate per parameter  
+    \item Handles sparse and noisy gradients  
+    \item Faster and more stable convergence
+\end{itemize}
+
+\subsection{Learning Rate}
+\begin{itemize}
+    \item Baseline 0.001 was near optimal  
+    \item Large deviations harm performance  
+    \item Scheduling could further improve results
+\end{itemize}
+
+\subsection{Dropout}
+\begin{itemize}
+    \item Prevents overfitting  
+    \item May slightly slow short training  
+    \item Essential for longer runs
+\end{itemize}
+
+ 
+
+\section{Conclusion}
+
+The experiments show:
+
+\begin{enumerate}
+    \item Optimizer choice is the most critical factor—AdamW is clearly superior.
+    \item Learning rate must be carefully tuned.
+    \item Dropout improves generalization, especially for longer training.
+    \item The baseline setup provides a well-balanced configuration.
+\end{enumerate}
+
+ 
+
+\end{document}
