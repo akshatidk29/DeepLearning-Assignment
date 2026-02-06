@@ -4,8 +4,8 @@
 Vandna
 
 ## Project Structure
-- `Assignment-1/Task-1/1.1/Q1.1.ipynb`: notebook containing the FCNN on Adult Income Dataset. (Question 1.1)
-- `Assignment-1/Task-1/1.2/Q1.2.ipynb`: Notebook containing the importance of preprocessing (Question 1.2)
+- `Assignment-1/Task-1/Q1.1.ipynb`: notebook containing the FCNN on Adult Income Dataset. (Question 1.1)
+- `Assignment-1/Task-1/Q1.2.ipynb`: Notebook containing the importance of preprocessing (Question 1.2)
 - `adult.data`: This file contain the dataset.
 
   ---
