@@ -1,4 +1,4 @@
-# Deep Learning Project: FCNN on Adult Income Dataset
+# Deep Learning Project: FCNN on Adult Income Dataset and The Importance of Pre-Processing
 
 ## Author
 Vandna
