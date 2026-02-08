@@ -68,6 +68,7 @@ Prior to experimentation, we established the following expectations:
 \begin{enumerate}
     \item \textbf{Vanishing Gradients:} The gradient norms in the first layer started extremely low ($0.0005$), confirming the vanishing gradient problem.
     \item \textbf{Performance:} The model underfitted significantly. Final Validation Accuracy reached only \textbf{26.2\%}, with training loss stalling around 1.6.
+    \item \textbf{Training Time:} The average time per epoch was approximately \textbf{6.52 seconds} (excluding the first epoch).
 \end{enumerate}
 
 \subsection{Experiment B: Leaky ReLU + Batch Normalization}
@@ -79,6 +80,7 @@ Prior to experimentation, we established the following expectations:
     \item \textbf{Overfitting:} The model exhibited significant overfitting. Training loss dropped to \textbf{0.27}, while validation loss increased to \textbf{2.15}.
     \item \textbf{Performance:} Despite overfitting, the model achieved a peak validation accuracy of \textbf{40.4\%}.
     \item \textbf{Regularization:} We deliberately avoided Early Stopping as it is not an orthogonal method of regularization for this analysis.
+    \item \textbf{Training Time:} The average time per epoch was approximately \textbf{6.51 seconds}. Although ReLU is computationally cheaper than Sigmoid (avoiding expensive exponential operations), the addition of Batch Normalization layers in Experiment B introduces extra overhead (mean/variance calculation and normalization steps). These factors roughly cancel out, resulting in similar epoch times.
 \end{enumerate}
 
 \section{Visual Evidence}
@@ -87,6 +89,24 @@ Prior to experimentation, we established the following expectations:
     \includegraphics[width=1.0\textwidth]{plots/comparison_plot.png}
     \caption{Training Dynamics Comparison. Left: Loss vs Epochs showing Experiment B overfitting. Right: Gradient Norms showing Sigmoid (Experiment A) vanishing gradients.}
     \label{fig:results}
+\end{figure}
+
+\section{Test Set Evaluation}
+The models were evaluated on the held-out test set from Tiny ImageNet (10 classes).
+
+\textbf{Results:}
+\begin{itemize}
+    \item \textbf{Experiment A (Sigmoid):} Test Accuracy = \textbf{25.20\%}
+    \item \textbf{Experiment B (Leaky ReLU + BN):} Test Accuracy = \textbf{41.20\%}
+\end{itemize}
+
+The test results closely mirror the validation performance, confirming that the Leaky ReLU + BN model generalizes significantly better than the Sigmoid baseline, despite the observed overfitting during training.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plots/test_confusion_matrix.png}
+    \caption{Confusion Matrix for Experiment B (Leaky ReLU + BN) on the Test Set.}
+    \label{fig:confusion_matrix}
 \end{figure}
 
 \section{Conclusion}
