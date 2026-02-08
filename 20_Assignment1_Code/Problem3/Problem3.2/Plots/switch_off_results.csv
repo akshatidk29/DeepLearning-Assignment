@@ -1,0 +1,6 @@
+Configuration,Final Val Acc (%),Final Test Acc (%)
+Baseline (L-ReLU + BN + Dropout 0.3 + LR 0.001 + Adam),42.00,41.00
+No Dropout (L-ReLU + BN + LR 0.001 + Adam),40.40,37.80
+LR = 0.01 (10x higher),36.40,38.70
+LR = 0.0001 (10x lower),37.40,34.70
+Vanilla SGD (L-ReLU + BN + Dropout 0.3 + LR 0.001),19.00,20.80
