@@ -1,0 +1,67 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Assignment 2 - Part 3.2: The Receptive Field Experiment\\
+\large Feature Extraction \& Visual Interpretability}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+This experiment visualizes how the ``focus'' of a CNN evolves across layers. We extract activation maps from the first and final convolutional layers to show the transition from low-level features (edges, textures) to high-level semantic patterns (object shapes). Analysis is performed on MNIST and Tiny-ImageNet-10 using the same SimpleCNN architecture from Part 3.1.
+
+\section{Methodology}
+
+We use PyTorch's forward hook mechanism to capture intermediate activations from the first and final convolutional layers. Activation maps from multiple channels are averaged to produce representative heatmaps for visualization.
+
+\section{Results \& Visualizations}
+
+\subsection{MNIST}
+
+Figure~\ref{fig:mnist} shows the activation maps for a sample MNIST digit. The first convolutional layer responds to edges and local patterns, while the final layer shows concentrated activation on the digit's overall shape.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{receptive_field_mnist.png}
+\caption{Receptive Field Analysis on MNIST. The first layer detects edges; the final layer captures digit-level features.}
+\label{fig:mnist}
+\end{figure}
+
+\subsection{Tiny-ImageNet}
+
+Figure~\ref{fig:tiny} presents activation maps for a Tiny-ImageNet sample. Early layers detect color blobs and chromatic edges, while deeper layers respond to object parts and semantic regions.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=\textwidth]{receptive_field_tiny.png}
+\caption{Receptive Field Analysis on Tiny-ImageNet. The first layer detects textures and color edges; the final layer focuses on object-relevant regions.}
+\label{fig:tiny}
+\end{figure}
+
+\section{Analysis}
+
+\textbf{How the Focus Changes}:
+\begin{itemize}
+    \item \textbf{1st Conv Layer}: Acts as low-level feature detector, responding to edges, corners, and textures. Small receptive field ($\approx 3 \times 3$).
+    \item \textbf{Final Conv Layer}: Combines features into high-level representations. Larger receptive field captures global context and object-level patterns.
+    \item \textbf{Receptive Field Growth}: Each layer ``sees'' more of the input, enabling the network to integrate spatial information hierarchically.
+\end{itemize}
+
+\textbf{MNIST vs. Tiny-ImageNet}:
+\begin{itemize}
+    \item \textbf{MNIST}: Cleaner activation maps due to simple grayscale digits. Final layer focuses on digit shape.
+    \item \textbf{Tiny-ImageNet}: Richer feature hierarchies. First layer learns chromatic features (color-opponent filters). Final layer activations are more distributed due to object variability and background clutter.
+\end{itemize}
+
+\textbf{Key Observations}: The visualization confirms that CNNs automatically learn hierarchical representations from simple to complex, mirroring biological visual systems. The same architecture adapts to different datasets, demonstrating the flexibility of CNNs.
+
+\end{document}
