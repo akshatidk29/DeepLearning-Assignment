@@ -1,0 +1,171 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{verbatim}
+\usepackage{geometry}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+
+\title{Anomaly Detection using Convolutional Autoencoders on Tiny-ImageNet}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Problem definition \& methodology}
+
+The objective of this assignment was to investigate whether Convolutional Autoencoders (CAEs) can be used for anomaly detection on Tiny-ImageNet (10 classes). 
+
+The task was to:
+\begin{itemize}
+    \item Train an autoencoder on 9 classes (seen data)
+    \item Hold out 1 class as OOD (unseen)
+    \item Compare reconstruction error (MSE) between seen and unseen samples
+\end{itemize}
+
+\textbf{Methodology:}
+\begin{enumerate}
+    \item Selected one class (e.g., class 3) as OOD
+    \item Trained a convolutional autoencoder on remaining 9 classes
+    \item Evaluated reconstruction error on:
+    \begin{itemize}
+        \item Seen classes
+        \item Unseen (OOD) class
+    \end{itemize}
+    \item Visualized:
+    \begin{itemize}
+        \item Training loss
+        \item Reconstruction error per class
+        \item Original vs reconstructed images
+    \end{itemize}
+    \item Extended experiment by:
+    \begin{itemize}
+        \item Repeating training for each class as OOD (10 models)
+        \item Computing mean and variance of reconstruction error per class
+    \end{itemize}
+\end{enumerate}
+
+
+
+\section{Hyperparameter tuning \& architecture designs}
+
+\textbf{Model:} Convolutional Autoencoder
+
+\begin{itemize}
+    \item Encoder: 3 Conv layers (stride=2), channels: 3 $\rightarrow$ 32 $\rightarrow$ 64 $\rightarrow$ 128
+    \item Decoder: 3 ConvTranspose layers (mirroring encoder)
+    \item Activation: ReLU (hidden), Tanh (output)
+    \item No BatchNorm or Dropout
+\end{itemize}
+
+\textbf{Training setup:}
+\begin{itemize}
+    \item Loss: Mean Squared Error (MSE)
+    \item Optimizer: Adam ($lr = 10^{-3}$)
+    \item Batch size: 128
+    \item Epochs: 30
+\end{itemize}
+
+\textbf{Observation:} Training loss converged smoothly, indicating stable learning.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\linewidth]{loss.png}
+    \caption{Training loss curve}
+\end{figure}
+
+
+
+\section{Results, visualizations, and interpretations}
+
+\textbf{Single OOD experiment (Class 3):}
+
+\begin{itemize}
+    \item Seen class MSE: 0.0284
+    \item Unseen class MSE: 0.0168
+\end{itemize}
+
+Interestingly, the unseen class did not always produce higher error, indicating that reconstruction alone may not reliably detect anomalies.
+
+\textbf{Class-wise reconstruction error:}
+
+\begin{verbatim}
+Class 0: Avg MSE = 0.028132
+Class 1: Avg MSE = 0.036198
+Class 2: Avg MSE = 0.018450
+Class 3: Avg MSE = 0.016844
+Class 4: Avg MSE = 0.028276
+Class 5: Avg MSE = 0.027768
+Class 6: Avg MSE = 0.043647
+Class 7: Avg MSE = 0.023515
+Class 8: Avg MSE = 0.020019
+Class 9: Avg MSE = 0.029609
+\end{verbatim}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{bar.png}
+    \caption{Reconstruction error per class (OOD highlighted)}
+\end{figure}
+
+\textbf{Reconstruction visualization:}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{recon.png}
+    \caption{Original vs reconstructed images}
+\end{figure}
+
+The reconstructions are generally good, even for the unseen class, suggesting the model learns shared visual features rather than class-specific patterns.
+
+
+
+\section{The key findings and explanations}
+
+\begin{itemize}
+    \item Autoencoders do not reliably detect anomalies:  
+    Reconstruction error for unseen class is not consistently higher.
+
+    \item Error depends on feature similarity:  
+    Classes sharing visual patterns (texture, color, structure) are reconstructed well even if unseen.
+
+    \item Low variance across OOD runs:  
+\end{itemize}
+
+\begin{verbatim}
+Class 0: Mean=0.043255, Var=0.000002
+Class 1: Mean=0.054327, Var=0.000002
+Class 2: Mean=0.030177, Var=0.000001
+Class 3: Mean=0.028947, Var=0.000001
+Class 4: Mean=0.039932, Var=0.000001
+Class 5: Mean=0.038491, Var=0.000001
+Class 6: Mean=0.063730, Var=0.000005
+Class 7: Mean=0.035143, Var=0.000001
+Class 8: Mean=0.029017, Var=0.000001
+Class 9: Mean=0.048054, Var=0.000008
+\end{verbatim}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{variance.png}
+    \caption{Mean $\pm$ Std reconstruction error across OOD runs}
+\end{figure}
+
+\textbf{Conclusion:}
+
+\begin{itemize}
+    \item Reconstruction error is not strongly dependent on which class is OOD
+    \item CAEs learn a shared latent representation of visual features
+    \item This limits their effectiveness for anomaly detection in complex datasets
+\end{itemize}
+
+\textbf{Final insight:}  
+Anomaly detection using autoencoders works only when anomalies are sufficiently different in feature space, not merely unseen during training.
+
+\end{document}
