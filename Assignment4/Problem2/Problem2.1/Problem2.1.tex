@@ -1,0 +1,346 @@
+\documentclass[11pt,a4paper]{article}
+
+% ─── Packages ────────────────────────────────────────────────────────────────
+\usepackage[top=2.2cm,bottom=2.2cm,left=2.2cm,right=2.2cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+% ─── Hyperref ────────────────────────────────────────────────────────────────
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, citecolor=green!50!black}
+
+% ─── Page Style ──────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Tiny-ImageNet-10 Experiments}
+\rhead{\small Problem 2.1 --- The Latent Walk (Interpolation)}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Code Style ──────────────────────────────────────────────────────────────
+\definecolor{codegreen}{RGB}{0,120,0}
+\definecolor{codegray}{RGB}{110,110,110}
+\definecolor{codeblue}{RGB}{0,0,200}
+\definecolor{backcolor}{RGB}{248,248,248}
+
+\lstdefinestyle{pystyle}{
+    backgroundcolor=\color{backcolor},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codeblue}\bfseries,
+    stringstyle=\color{codegray},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    numbersep=7pt,
+    keepspaces=true,
+    frame=single,
+    language=Python,
+    showstringspaces=false,
+    tabsize=4
+}
+\lstset{style=pystyle}
+
+% ─── Paragraph spacing ───────────────────────────────────────────────────────
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ─── Title Block (matching Problem 1.2 style) ────────────────────────────────
+\begin{center}
+    \rule{\linewidth}{1.5pt}\\[5pt]
+    {\large\bfseries Problem 2.1 --- The Latent Walk (Interpolation)}\\[4pt]
+    \rule{\linewidth}{0.8pt}
+\end{center}
+\thispagestyle{fancy}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{Background and Objective}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+A core claim of the Variational Autoencoder (VAE) is that it learns a \textbf{structured and
+continuous latent space}. Unlike a deterministic autoencoder whose encoder can place codes
+freely in $\mathbb{R}^{d}$, the VAE imposes a Gaussian prior through the KL-Divergence
+regulariser. This forces nearby classes to occupy overlapping regions of $\mathcal{Z}$, and
+crucially ensures the \emph{space between} encoded images is also decodable into semantically
+meaningful outputs.
+
+The \textbf{latent walk} is the standard empirical test of this property. Given two images from
+different classes, we encode them, linearly interpolate their latent vectors in 10 steps of
+$\alpha$, and decode each intermediate vector. The resulting transition strip directly reveals
+whether the manifold is smooth (VAE-style) or whether intermediate points decode to incoherent
+ghostly overlaps (standard AE/FCNN-style artefact).
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{Loss Function Formulation}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+The CVAE minimises the negative ELBO, decomposed as:
+\[
+    \mathcal{L}_{\text{total}} = \mathcal{L}_{\text{recon}} + \beta \cdot \mathcal{L}_{\text{KLD}}
+\]
+
+\textbf{Reconstruction Loss --- Mean Squared Error (MSE)}
+\[
+    \mathcal{L}_{\text{recon}}
+    = \frac{1}{N}\sum_{i=1}^{N}\sum_{d=1}^{D}
+      \bigl(x_{id} - \hat{x}_{id}\bigr)^{2}
+\]
+$x_{id}$: true pixel, $\hat{x}_{id}$: decoder output,
+$N$: batch size, $D = 3\times64\times64 = 12{,}288$.
+
+\textbf{KL Divergence}
+\[
+    \mathcal{L}_{\text{KLD}}
+    = -\frac{1}{2N}\sum_{i=1}^{N}\sum_{j=1}^{d}
+      \bigl(1 + \log\sigma_{ij}^{2} - \mu_{ij}^{2} - \sigma_{ij}^{2}\bigr)
+\]
+
+\textbf{Interpolation Formula}
+
+Given posterior means $\mathbf{z}_1 = \boldsymbol{\mu}_A$ and $\mathbf{z}_2 = \boldsymbol{\mu}_B$
+for source images $\mathbf{x}_A$ and $\mathbf{x}_B$:
+\[
+    \mathbf{z}_{\text{new}} = \alpha\,\mathbf{z}_1 + (1-\alpha)\,\mathbf{z}_2,
+    \qquad \alpha \in \{0.0,\;0.1,\;\ldots,\;1.0\}
+\]
+Posterior \emph{means} (not stochastic samples) are used so the walk is deterministic and reproducible across runs.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{Model Architecture}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+Convolutional encoder--decoder on $3\times64\times64$ RGB images.
+Latent dim: 128. Optimiser: Adam ($10^{-3}$). Batch: 64. $\beta = 1.0$.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Component} & \textbf{Layer} & \textbf{Dimensions} \\
+\midrule
+Encoder   & Conv2d $\times$4, stride 2, ReLU      & $3\!\times\!64^2 \to 32\!\times\!32^2 \to 64\!\times\!16^2 \to 128\!\times\!8^2 \to 256\!\times\!4^2$ \\
+          & Flatten                               & $4{,}096$ \\
+          & FC (mean) / FC (log-var)              & $4{,}096 \to 128$ each \\
+Reparam.  & $\mathbf{z}=\boldsymbol{\mu}+\boldsymbol{\varepsilon}\odot\boldsymbol{\sigma},\;\boldsymbol{\varepsilon}\sim\mathcal{N}(\mathbf{0},\mathbf{I})$ & dim 128 \\
+Decoder   & FC + ReLU, Unflatten                  & $128 \to 4{,}096 \to 256\!\times\!4^2$ \\
+          & ConvTranspose2d $\times$3, ReLU        & $256\!\times\!4^2 \to 128\!\times\!8^2 \to 64\!\times\!16^2 \to 32\!\times\!32^2$ \\
+          & ConvTranspose2d + \textbf{Sigmoid}    & $32\!\times\!32^2 \to 3\!\times\!64^2$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The final \texttt{Sigmoid} constrains decoder outputs to $[0,1]$, matching normalised inputs and the MSE loss scale.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{Results --- Training ($\beta = 1.0$, 20 Epochs)}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.88\textwidth]{vae_loss_plot.png}
+    \caption{Total, Reconstruction (MSE), and KL Divergence losses over 20 epochs ($\beta = 1.0$).}
+    \label{fig:loss}
+\end{figure}
+
+\begin{center}
+\begin{tabular}{ccccp{5.2cm}}
+\toprule
+\textbf{Epoch} & \textbf{Total} & \textbf{Recon} & \textbf{KLD} & \textbf{Notes}\\
+\midrule
+1  & 660 & 643 & 17 & Fast initial drop; encoder not yet structured \\
+5  & 430 & 395 & 35 & KLD rising; encoder learning posteriors \\
+10 & 360 & 320 & 40 & Slow convergence; KLD approaching plateau \\
+20 & 325 & 283 & 43 & Final values; stable equilibrium \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Key observations:}
+\begin{itemize}[leftmargin=*, itemsep=1pt]
+    \item Total and Recon losses drop sharply in epochs 1--3 as the network learns coarse image
+          structure, then converge slowly.
+    \item KLD \emph{rises} from $\approx 17$ to a plateau near $43$ --- the encoder gradually
+          invests in informative latent codes as reconstruction pressure increases.
+          This rising-then-stabilising pattern indicates a healthy encoder--decoder equilibrium,
+          not posterior collapse.
+    \item The gap between Total and Recon ($\approx 43$ at epoch 20) equals the stabilised KLD,
+          confirming the loss decomposition is self-consistent.
+\end{itemize}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{Results --- Latent Space Walk}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{latent_walk_strip.png}
+    \caption{Ten-step latent walk from Class A ($\alpha = 0.0$, dark textured landscape) to
+             Class B ($\alpha = 1.0$, bright sky-dominant scene). Each frame is decoded from
+             $\mathbf{z}_{\text{new}} = \alpha\boldsymbol{\mu}_A + (1-\alpha)\boldsymbol{\mu}_B$.}
+    \label{fig:walk}
+\end{figure}
+
+\begin{center}
+\begin{tabular}{p{2.4cm}p{5.4cm}p{5.4cm}}
+\toprule
+\textbf{$\alpha$ range} & \textbf{Visual appearance} & \textbf{Interpretation} \\
+\midrule
+$0.0$--$0.2$ & Dark olive/brown tones; textured foreground   & $\mathbf{x}_A$-dominant: low-light landscape \\
+$0.3$--$0.4$ & Gradual lightening; horizon becomes visible   & Structural blending begins \\
+$0.5$        & Equal brightness top/bottom; horizon centred  & Mid-latent: mixed structural identity \\
+$0.6$--$0.7$ & Lighter; sky palette emerging above horizon   & $\mathbf{x}_B$ features dominate \\
+$0.8$--$1.0$ & Grey-blue sky with dark horizon band          & $\mathbf{x}_B$-dominant: bright sky scene \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{Observation and Analysis}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+\textbf{Does the transition look like a ghostly overlap (FCNN-style) or a smooth structural
+change (VAE-style)?}
+
+\begin{center}
+\begin{tabular}{p{3.8cm}p{5.0cm}p{5.0cm}}
+\toprule
+\textbf{Property} & \textbf{FCNN-style (undesirable)} & \textbf{VAE-style (observed)} \\
+\midrule
+Intermediate frames   & Both source images simultaneously visible as a double-exposure
+                      & Gradual structural morphing; no double-exposure \\
+Colour palette        & Inconsistent, abrupt hue jumps
+                      & Monotonic shift: warm dark $\to$ cool bright \\
+Structural continuity & Discontinuous feature boundaries
+                      & Horizon migrates smoothly across all 10 frames \\
+Semantic coherence    & Nonsensical compositions
+                      & Physically plausible ``in-between'' scenes \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The observed transition is \textbf{VAE-style}: the horizon line migrates continuously across the
+strip; luminance changes monotonically; no ghostly overlay of both source images appears at
+any $\alpha$.
+
+\textbf{What happens to sharpness at intermediate $\alpha$?}
+
+\begin{center}
+\begin{tabular}{p{3cm}p{4cm}p{6.5cm}}
+\toprule
+$\alpha$ & Sharpness & Reason \\
+\midrule
+$0.0$ or $1.0$ & Sharpest (endpoints) & Direct encoding of a training image \\
+$0.2$--$0.8$   & Progressively blurrier toward $\alpha=0.5$ & Latent code lies between two training modes \\
+$0.5$          & Blurriest (midpoint)  & Decoder has seen fewest examples near this code \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Blurriness at intermediate steps is an inherent VAE property caused by two compounding factors:
+
+\textbf{MSE reconstruction loss.} Minimising squared error is equivalent to maximising a Gaussian
+likelihood, which outputs the \emph{mean} of all plausible reconstructions --- inherently blurry.
+
+\textbf{Posterior averaging.} Codes $\mathbf{z}_{\text{new}}(\alpha)$ occupy regions between two
+training-distribution modes. The decoder sees fewer examples near these points, defaulting to a
+conservative blurry average. This is not a failure of the walk; it is the fundamental
+reconstruction--regularity trade-off of the VAE framework.
+
+\textbf{Why does the KLD term make smooth walks possible?}
+
+Without KLD, the encoder maps each input to an isolated point in $\mathbb{R}^{128}$; the decoder
+is trained only at those points and produces noise everywhere else. Adding the KLD term forces all
+posteriors toward $\mathcal{N}(\mathbf{0},\mathbf{I})$:
+\[
+    D_{\mathrm{KL}}\!\bigl(\mathcal{N}(\boldsymbol{\mu},\,\mathrm{diag}(\boldsymbol{\sigma}^2))
+    \,\|\,\mathcal{N}(\mathbf{0},\mathbf{I})\bigr)
+    = \frac{1}{2}\sum_{j=1}^{128}\bigl(\mu_j^2 + \sigma_j^2 - 1 - \log\sigma_j^2\bigr)
+\]
+This achieves two structural effects: (1)~\textbf{clustering} --- all class codes are pulled
+toward the origin, reducing inter-class distances in $\mathcal{Z}$; (2)~\textbf{overlap} ---
+non-zero $\sigma$ spreads each posterior over a neighbourhood, compelling the decoder to produce
+valid images across a region, not just at a single code point. Together, these guarantee the
+interpolation path passes through decoder-covered territory, making the walk coherent.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{Implementation}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+\begin{lstlisting}[caption={Latent walk: encode with mu, interpolate, decode.}]
+def generate_latent_walk(encoder, decoder, image_1, image_2, device='cpu'):
+    encoder.eval(); decoder.eval()
+    image_1 = image_1.unsqueeze(0).to(device)
+    image_2 = image_2.unsqueeze(0).to(device)
+
+    with torch.no_grad():
+        mu_1, _ = encoder(image_1)   # use mean (mu), not a stochastic sample
+        mu_2, _ = encoder(image_2)
+        z_1, z_2 = mu_1.squeeze(), mu_2.squeeze()
+
+        alphas = torch.linspace(0, 1, steps=10).to(device)
+        decoded = []
+        for alpha in alphas:
+            z_new = alpha * z_1 + (1 - alpha) * z_2   # linear interpolation
+            decoded.append(decoder(z_new.unsqueeze(0)).squeeze().cpu())
+
+    fig, axes = plt.subplots(1, 10, figsize=(20, 3))
+    for i, ax in enumerate(axes):
+        ax.imshow(np.clip(decoded[i].permute(1, 2, 0).numpy(), 0, 1))
+        ax.axis('off')
+        ax.set_title(f'a = {alphas[i]:.1f}')
+    plt.suptitle("Latent Space Walk: Class A to Class B", fontsize=14)
+    plt.tight_layout(); plt.show()
+\end{lstlisting}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{Summary}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+    \item Latent walk uses $\mathbf{z}_{\text{new}} = \alpha\boldsymbol{\mu}_A +
+          (1-\alpha)\boldsymbol{\mu}_B$ for 10 values of $\alpha$ from 0 to 1.
+    \item At $\beta = 1.0$ over 20 epochs: total loss $660 \to 325$;
+          KLD rises $17 \to 43$; Recon $643 \to 283$.
+    \item The transition strip shows a \textbf{smooth structural change} (VAE-style):
+          the horizon migrates continuously, luminance shifts monotonically, and
+          no ghostly double-exposure artefact appears.
+    \item Higher $\alpha$ blurriness near the midpoint is an expected VAE property
+          caused by MSE loss and posterior averaging --- not a failure of the interpolation.
+    \item The KLD term is the enabling mechanism: it clusters and overlaps posterior
+          distributions so the decoder covers inter-class regions of $\mathcal{Z}$.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\subsection*{References}
+% ══════════════════════════════════════════════════════════════════════════════
+\noindent\rule{\linewidth}{0.4pt}
+
+\begin{enumerate}[label={[\arabic*]}, leftmargin=*, itemsep=1pt]
+    \item D.\,P. Kingma and M. Welling, ``Auto-Encoding Variational Bayes,'' \textit{ICLR}, 2014.
+    \item I. Higgins et al., ``$\beta$-VAE: Learning Basic Visual Concepts with a Constrained
+          Variational Framework,'' \textit{ICLR}, 2017.
+    \item A. Radford, L. Metz, and S. Chintala, ``Unsupervised Representation Learning with
+          Deep Convolutional Generative Adversarial Networks,'' \textit{ICLR}, 2016.
+    \item Le et al., ``Tiny ImageNet Visual Recognition Challenge,'' \textit{CS 231N}, 2015.
+\end{enumerate}
+
+\end{document}
